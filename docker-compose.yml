@@ -1,0 +1,31 @@
+version: '2'
+
+services:
+
+  domresizer:
+    build: .
+    image: dom-resizer:latest
+    container_name: "domresizer_dev"
+    hostname: domresizer
+    command: bin/run-devserver.sh
+
+    volumes:
+     - .:/opt/app-source:ro
+
+    ports:
+      - "8000:8000"
+      
+  domresizer_builder:
+    build: .
+    image: dom-resizer:latest
+    container_name: "domresizer_builder"
+    command: bin/autosync-builds.sh
+    
+    environment:
+     - BUILD_MODE=production
+  
+    volumes:
+      - ./dist:/opt/app/dist
+      - .:/opt/app-source:ro
+
+

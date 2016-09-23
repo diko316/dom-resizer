@@ -1,0 +1,47 @@
+{
+  "name": "dom-resizer",
+  "version": "0.0.1",
+  "description": "A Standalone DOM HTMLElement resize handler",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prestart": "node_modules/.bin/webpack --hide-modules",
+    "start": "node webpack.dev.server.js",
+    "build": "node_modules/.bin/webpack --hide-modules"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://diko316@github.com/diko316/dom-resizer.git"
+  },
+  "keywords": [
+    "HTML",
+    "resizer",
+    "standalone"
+  ],
+  "author": "Diko Tech Slave",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/diko316/dom-resizer/issues"
+  },
+  "homepage": "https://github.com/diko316/dom-resizer#readme",
+  "devDependencies": {
+    "css-loader": "^0.25.0",
+    "eslint": "^3.5.0",
+    "eslint-loader": "^1.5.0",
+    "express": "^4.14.0",
+    "extract-text-webpack-plugin": "^1.0.1",
+    "file-loader": "^0.9.0",
+    "html-loader": "^0.4.4",
+    "html-webpack-plugin": "^2.22.0",
+    "json-loader": "^0.5.4",
+    "less": "^2.7.1",
+    "less-loader": "^2.2.3",
+    "style-loader": "^0.13.1",
+    "url-loader": "^0.5.7",
+    "webpack": "^1.13.2",
+    "webpack-dev-middleware": "^1.8.1",
+    "webpack-dev-server": "^1.16.1",
+    "webpack-hot-middleware": "^2.12.2",
+    "webpack-vendor-chunk-plugin": "^1.0.0"
+  }
+}
