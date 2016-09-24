@@ -5,7 +5,7 @@ services:
   domresizer:
     build: .
     image: dom-resizer:latest
-    container_name: "domresizer_dev"
+    container_name: "dom-resizer-dev"
     hostname: domresizer
     command: bin/run-devserver.sh
 
@@ -18,7 +18,7 @@ services:
   domresizer_builder:
     build: .
     image: dom-resizer:latest
-    container_name: "domresizer_builder"
+    container_name: "dom-resizer-builder"
     command: bin/autosync-builds.sh
     
     environment:

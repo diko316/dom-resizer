@@ -81,19 +81,18 @@ function onMouseOver(evt) {
     var resizer = RESIZER,
         dimension = DIMENSION,
         target = resizer.attached;
-    var element, offset, x, y;
+    var dom, offset, x, y;
     
     if (!target) {
-        element = dimension.eventTarget(evt);
+        dom = dimension.eventTarget(evt);
         offset = dimension.eventPageOffset(evt);
         x = offset[0];
         y = offset[1];
         
-        for (; element; element = element.parentNode) {
-            console.log(x, y,'? ', 1 === element.__dom_resizer && resizer.isInside(element, x, y));
-            if (1 === element.__dom_resizer &&
-                resizer.isInside(element, x, y)) {
-                resizer.attach(element);
+        for (; dom && dom.nodeType === 1; dom = dom.parentNode) {
+            if (1 === dom.__dom_resizer &&
+                resizer.isInside(dom, x, y)) {
+                resizer.attach(dom, evt);
                 break;
             }
         }
@@ -108,3 +107,4 @@ function onMouseOver(evt) {
 
 
 module.exports = EXPORTS;
+EXPORTS.unset = unobserve;

@@ -1,194 +1,337 @@
 'use strict';
 
-var EVENT = require("./event.js"),
+var SELECTION = require("./selection.js"),
+    EVENT = require("./event.js"),
     DIMENSION = require("./dimension.js"),
     CSS = require("./css.js"),
     PREFIX = 'dom-resizer',
-    HANDLE_SIZE = 20,
-    MARKUP = [
-            '<div class="', PREFIX, '-tl" handle="tl"></div>',
-            '<div class="', PREFIX, '-tm" handle="tm"></div>',
-            '<div class="', PREFIX, '-tr" handle="tm"></div>',
-            '<div class="', PREFIX, '-ml" handle="ml"></div>',
-            '<div class="', PREFIX, '-mr" handle="mr"></div>',
-            '<div class="', PREFIX, '-bl" handle="bl"></div>',
-            '<div class="', PREFIX, '-bm" handle="bm"></div>',
-            '<div class="', PREFIX, '-br" handle="br"></div>'
-        ];
-    
-function isInbound(element, ex, ey) {
-    var dimension = DIMENSION.box(element),
-        handleSize = HANDLE_SIZE;
-        
-    var t, b, l, r, it, ib, il, ir;
-    
-    if (dimension) {
-        l = dimension[0];
-        t = dimension[1];
-        r = dimension[2];
-        b = dimension[3];
-
-        // check if cursor is inside the outer dimensions
-        if (l < ex && r > ex && t < ey && b > ey) {
-        
-            il = Math.min(l + handleSize, r);
-            ir = Math.max(l, r - handleSize);
-            it = Math.min(t + handleSize, b);
-            ib = Math.max(t, b - handleSize);
-            
-            // check if cursor is outside the inner dimensions
-            return !(il < ex && ir > ex && it < ey && ib > ey);
-        
-        }
-        
-    }
-    
-    
-    return false;
-}
-
-    
+    STATE_IDLE = 0,
+    STATE_ATTACHED = 1,
+    STATE_INSIDE = 2,
+    STATE_RESIZE = 3;
 
 function Resizer() {
     var me = this,
         win = window,
         doc = win.document,
-        div = doc.createElement('div'),
+        container = doc.createElement('div'),
+        mask = doc.createElement('div'),
+        
         originalMouseMove = me.onMouseMove,
-        originalMouseOut = me.onMouseOut;
+        originalMouseDown = me.onMouseDown,
+        originalMouseUp = me.onMouseUp;
     
-    div.className = PREFIX + '-container';
-    div.innerHTML = MARKUP.join('');
+    container.className = PREFIX + '-container';
+    mask.className = PREFIX + '-mask';
     
-    me.dom = div;
+    me.dom = container;
+    me.mask = mask;
     
-    doc.body.appendChild(div);
+    doc.body.appendChild(mask);
+    mask.appendChild(container);
     
-    div = null;
+    container = null;
+    mask = null;
     doc = null;
     win = null;
     
     me.onMouseMove = function () {
         originalMouseMove.apply(me, arguments);
     };
-    me.onMouseOut = function () {
-        originalMouseOut.apply(me, arguments);
+    
+    me.onMouseDown = function () {
+        originalMouseDown.apply(me, arguments);
+    };
+    
+    me.onMouseUp = function () {
+        originalMouseUp.apply(me, arguments);
     };
 }
 
 Resizer.prototype = {
     
     attached: void(0),
-    handler: void(0),
+    handlerAttribute: PREFIX + '-handler',
+    handlerSize: 10,
+    status: STATE_IDLE,
+    selectionDisabled: false,
     showClass: PREFIX + '-show',
+    
+    startOffset: null,
+    handlerPosition: null,
     
     constructor: Resizer,
     
-    onMouseMove: function (evt) {
+    onMouseMove: function (event) {
         var me = this,
+            InsideState = STATE_INSIDE,
+            AttachedState = STATE_ATTACHED,
             element = me.attached,
-            pageOffset = DIMENSION.eventPageOffset(evt);
+            pageOffset = DIMENSION.eventPageOffset(event),
+            info = me.getCursorInfo(element,
+                                    pageOffset[0],
+                                    pageOffset[1]),
+            updateCursor = true;
+
+        switch (me.status) {
+        case AttachedState:
+            if (info.inside) {
+                me.status = InsideState;
+            }
+            break;
+        
+        case InsideState:
+            if (!info.inside) {
+                me.status = AttachedState;
+            }
+            break;
+        case STATE_RESIZE:
+            updateCursor = false;
+            SELECTION.clear();
+            me.onSyncSize(event);
             
-        if (element) {
-            if (me.isInside(element, pageOffset[0], pageOffset[1])) {
-                me.onShowHandles(element);
-            }
-            else {
-                me.onHideHandles(element);
-            }
+            break;
+        }
+        
+        if (updateCursor) {
+            me.applyCursor(info);
         }
         
     },
     
-    onMouseOut: function (evt) {
+    onMouseDown: function (event) {
         var me = this,
-            element = me.attached,
-            pageOffset = DIMENSION.eventPageOffset(evt);
+            dim = DIMENSION;
             
-        if (element) {
-            if (me.isInside(element, pageOffset[0], pageOffset[1])) {
-                me.onShowHandles(element);
-            }
-            else {
-                me.onHideHandles(element);
-            }
+        var container, info, offset, subject;
+            
+        if (me.status === STATE_INSIDE) {
+            subject = me.attached;
+            offset = DIMENSION.eventPageOffset(event);
+            info = me.getCursorInfo(subject, offset[0], offset[1]);
+            
+            me.applyCursor(info);
+            
+            container = me.dom;
+            CSS.add(me.mask, me.showClass);
+            dim.setBox(container,
+                    dim.box(subject)
+                );
+            offset = dim.eventPageOffset(event);
+            offset[2] = info.left;
+            offset[3] = info.top;
+            offset[4] = info.width;
+            offset[5] = info.height;
+            
+            me.startDimension = offset;
+            
+            me.handlerPosition = info.handler;
+            me.status = STATE_RESIZE;
+            
         }
     },
     
-    onShowHandles: function (element) {
-        var container = this.dom,
+    onMouseUp: function () {
+        var me = this;
+        
+        if (me.status === STATE_RESIZE) {
+            CSS.remove(me.mask, me.showClass);
+            delete me.startOffset;
+            me.status = STATE_ATTACHED;
+        }
+    },
+    
+    applyCursor: function (info) {
+        var me = this,
+            body = me.dom.ownerDocument.body,
+            attr = me.handlerAttribute;
+        
+        if (info.inside) {
+            body.setAttribute(attr, info.handler);
+        }
+        else {
+            body.removeAttribute(attr);
+        }
+        body = null;
+    },
+    
+    onSyncSize: function (event) {
+        var me = this,
             dim = DIMENSION,
-            box = dim.box(element);
+            M = Math,
+            start = me.startDimension,
+            handler = me.handlerPosition,
+            container = me.dom,
+            current = dim.eventPageOffset(event);
+            
+        var diffX, diffY, bt, bl, bw, bh, l, t, w, h, x, y;
         
-        CSS.add(container, this.showClass);
-        
-        dim.setBox(container, box);
-        
-        //console.log('show! ', container.className);
-    },
-    
-    onHideHandles: function (element) {
-        var container = this.dom;
-        
-        CSS.remove(container, this.showClass);
+        if (start && handler) {
+            
+            bl = start[2];
+            bt = start[3];
+            bw = start[4];
+            bh = start[5];
+            
+            diffX = current[0] - start[0];
+            diffY = current[1] - start[1];
+            
+            l = t = w = h = null;
+            x = handler.charAt(0);
+            y = handler.charAt(1);
+
+            switch (x) {
+            case 'l':
+                l = M.min(bl + diffX, bl + bw);
+                w = bw - diffX;
+                break;
+            case 'c':
+                h = y === 't' ?
+                        bh - diffY : bh + diffY;
+                break;
+            case 'r':
+                w = bw + diffX;
+            }
+            
+            switch (y) {
+            case 't':
+                t = M.min(bt + diffY, bt + bh);
+                h = bh - diffY;
+                break;
+            case 'm':
+                w = x === 'l' ?
+                        bw - diffX : bw + diffX;
+                break;
+            case 'b':
+                h = bh + diffY;
+            }
+            
+            if (l !== null || t !== null) {
+                dim.setOffset(container, l, t);
+            }
+            if (w !== null || h !== null) {
+                dim.setSize(container, w, h);
+            }
+            
+        }
         
     },
     
     isInside: function (element, ex, ey) {
+        return this.getCursorInfo(element, ex, ey).inside;
+    },
+    
+    getCursorInfo: function (element, ex, ey) {
         var dimension = DIMENSION.box(element),
-            handleSize = HANDLE_SIZE;
+            handleSize = this.handlerSize,
+            M = Math,
+            info = {
+                top: 0,
+                right: 0,
+                bottom: 0,
+                left: 0,
+                width: 0,
+                height: 0,
+                handleSize: handleSize,
+                handler: null,
+                inside: false
+            };
             
-        var t, b, l, r, it, ib, il, ir;
+        var t, b, l, r, it, ib, il, ir,
+            gl, lr, gt, lb, lil, gir, lit, gib;
         
         if (dimension) {
-            l = dimension[0];
-            t = dimension[1];
-            r = dimension[2];
-            b = dimension[3];
+            l = info.left = dimension[0];
+            t = info.top = dimension[1];
+            r = info.right = dimension[2];
+            b = info.bottom = dimension[3];
+            
+            info.width = dimension[4];
+            info.height = dimension[5];
+            
+            
+            gl = ex > l;
+            lr = ex < r;
+            gt = ey > t;
+            lb = ey < b;
+            
     
             // check if cursor is inside the outer dimensions
-            if (l < ex && r > ex && t < ey && b > ey) {
+            if (gl && lr && gt && lb) {
             
-                il = Math.min(l + handleSize, r);
-                ir = Math.max(l, r - handleSize);
-                it = Math.min(t + handleSize, b);
-                ib = Math.max(t, b - handleSize);
+                il = M.min(l + handleSize, r);
+                ir = M.max(l, r - handleSize);
+                it = M.min(t + handleSize, b);
+                ib = M.max(t, b - handleSize);
                 
-                // check if cursor is outside the inner dimensions
-                return !(il < ex && ir > ex && it < ey && ib > ey);
+                lil = ex < il;
+                gir = ex > ir;
+                lit = ey < it;
+                gib = ey > ib;
+                
+                if (lil || gir || lit || gib) {
+                    
+                    info.inside = true;
+                    info.handler = (gl && lil ?
+                                        'l' :
+                                        lr && gir ?
+                                            'r' : 'c') +
+                                    (gt && lit ?
+                                        't' :
+                                        lb && gib ?
+                                            'b' : 'm');
+                }
             
             }
             
         }
 
-        return false;
+        return info;
     },
     
-    attach: function (element) {
-        var last = this.attached;
+    attach: function (element, event) {
+        var me = this,
+            eventMgr = EVENT,
+            attachedState = STATE_ATTACHED;
+        var last;
         
-        if (last !== element) {
-            // detach
-            if (last) {
-                this.detach();
+        switch (me.status) {
+        case attachedState:
+            last = me.attached;
+            if (last === element) {
+                break;
             }
+            me.detach();
             
-            this.attached = element;
-            EVENT.on(element.ownerDocument.body, 'mousemove', this.onMouseMove);
-            EVENT.on(element.ownerDocument.body, 'mouseout', this.onMouseOut);
-            
+        /* falls through */
+        case STATE_IDLE:
+            me.attached = element;
+            me.status = attachedState;
+            last = element.ownerDocument;
+            eventMgr.on(last, 'mousemove', me.onMouseMove);
+            eventMgr.on(last, 'mousedown', me.onMouseDown);
+            eventMgr.on(last, 'mouseup', me.onMouseUp);
+            me.onMouseMove(event);
         }
-        return this;
+        last = null;
+        return me;
         
     },
     
     detach: function () {
-        var last = this.attached;
-        if (last) {
-            EVENT.un(last.ownerDocument.body, 'mousemove', this.onMouseMove);
-            EVENT.on(last.ownerDocument.body, 'mouseout', this.onMouseOut);
-            delete this.attached;
+        var me = this,
+            eventMgr = EVENT;
+        var dom;
+        if (me.status === STATE_ATTACHED) {
+            dom = me.attached.ownerDocument;
+            eventMgr.un(dom, 'mousemove', me.onMouseMove);
+            eventMgr.un(dom, 'mousedown', me.onMouseDown);
+            eventMgr.un(dom, 'mouseup', me.onMouseUp);
+            delete me.attached;
+            me.status = STATE_IDLE;
         }
+        dom = null;
+        return me;
     },
     
     destroy: function () {

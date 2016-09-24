@@ -9,5 +9,5 @@ cd "${CURRENT_DIR}"
 
 cp -R ${ROOT}/test/assets/* ${ROOT}/dist/ || echo "No builds as for now."
 
-cp -R ${ROOT}/src/* ${ROOT}/dist/ || echo "No files in source."
+#cp -R ${ROOT}/src/* ${ROOT}/dist/ || echo "No files in source."
 

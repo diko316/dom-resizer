@@ -111,6 +111,8 @@ function getCurrentStyle(element) {
         }
     }
     
+    style = null;
+    win = null;
     return values;
 
 }

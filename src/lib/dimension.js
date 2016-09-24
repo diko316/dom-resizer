@@ -38,21 +38,23 @@ function getSize(element) {
 }
 
 function setOffset(element, x, y) {
-    var parent = element.offsetParent;
-    var parentOffset;
+    var css = CSS.styles(element, 'top', 'left'),
+        top = parseInt(css.top) || 0,
+        left = parseInt(css.left) || 0,
+        offset = getOffset(element);
     
-    if (parent) {
-        parentOffset = getOffset(parent);
-        x -= parentOffset[0];
-        y -= parentOffset[1];
+    if (y !== null) {
+        element.style.top = (top + y - offset[1]) + 'px';
     }
     
-    element.style.top = y + 'px';
-    element.style.left = x + 'px';
+    if (x !== null) {
+        element.style.left = (left + x - offset[0]) + 'px';
+    }
 }
 
 function setSize(element, width, height) {
-    var css = CSS.styles(element,
+    var M = Math,
+        css = CSS.styles(element,
                             'borderTopWidth',
                             'borderBottomWidth',
                             'borderLeftWidth',
@@ -61,49 +63,25 @@ function setSize(element, width, height) {
                             'paddingBottom',
                             'paddingLeft',
                             'paddingRight');
-    var item;
-    
-    // vertical
-    item = parseFloat(css.borderTopWidth);
-    if (item) {
-        height -= item;
-    }
-    item = parseFloat(css.borderBottomWidth);
-    if (item) {
-        height -= item;
-    }
-    item = parseFloat(css.paddingTop);
-    if (item) {
-        height -= item;
-    }
-    item = parseFloat(css.paddingBottom);
-    if (item) {
-        height -= item;
+    if (height !== null) {
+        height -= (parseFloat(css.borderTopWidth) || 0) +
+                (parseFloat(css.borderBottomWidth) || 0) +
+                (parseFloat(css.paddingTop) || 0) +
+                (parseFloat(css.paddingBottom) || 0);
+                
+        element.style.height = M.max(height, 0) + 'px';
     }
     
     // horizontal
-    item = parseFloat(css.borderLeftWidth);
-    if (item) {
-        width -= item;
+    if (width !== null) {
+        width -= (parseFloat(css.borderLeftWidth) || 0) +
+                (parseFloat(css.borderRightWidth) || 0) +
+                (parseFloat(css.paddingLeft) || 0) +
+                (parseFloat(css.paddingRight) || 0);
+        
+        element.style.width = M.max(width, 0) + 'px';
     }
     
-    item = parseFloat(css.borderRightWidth);
-    if (item) {
-        width -= item;
-    }
-    
-    item = parseFloat(css.paddingLeft);
-    if (item) {
-        width -= item;
-    }
-    
-    item = parseFloat(css.paddingRight);
-    if (item) {
-        width -= item;
-    }
-    
-    element.style.width = width + 'px';
-    element.style.height = height + 'px';
 }
 
 function setBox(element, box) {
