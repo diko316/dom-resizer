@@ -1,5 +1,7 @@
 'use strict';
 
+var CSS = require("./css.js");
+
 function getBox(element) {
     var offset = getOffset(element),
         size = getSize(element),
@@ -50,6 +52,56 @@ function setOffset(element, x, y) {
 }
 
 function setSize(element, width, height) {
+    var css = CSS.styles(element,
+                            'borderTopWidth',
+                            'borderBottomWidth',
+                            'borderLeftWidth',
+                            'borderRightWidth',
+                            'paddingTop',
+                            'paddingBottom',
+                            'paddingLeft',
+                            'paddingRight');
+    var item;
+    
+    // vertical
+    item = parseFloat(css.borderTopWidth);
+    if (item) {
+        height -= item;
+    }
+    item = parseFloat(css.borderBottomWidth);
+    if (item) {
+        height -= item;
+    }
+    item = parseFloat(css.paddingTop);
+    if (item) {
+        height -= item;
+    }
+    item = parseFloat(css.paddingBottom);
+    if (item) {
+        height -= item;
+    }
+    
+    // horizontal
+    item = parseFloat(css.borderLeftWidth);
+    if (item) {
+        width -= item;
+    }
+    
+    item = parseFloat(css.borderRightWidth);
+    if (item) {
+        width -= item;
+    }
+    
+    item = parseFloat(css.paddingLeft);
+    if (item) {
+        width -= item;
+    }
+    
+    item = parseFloat(css.paddingRight);
+    if (item) {
+        width -= item;
+    }
+    
     element.style.width = width + 'px';
     element.style.height = height + 'px';
 }

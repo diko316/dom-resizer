@@ -2,11 +2,9 @@
 
 var EVENT = require("./event.js"),
     DIMENSION = require("./dimension.js"),
+    CSS = require("./css.js"),
     PREFIX = 'dom-resizer',
     HANDLE_SIZE = 20,
-    POSITION_INSIDE = 1,
-    POSITION_INSIDE_HANDLER = 2,
-    POSITION_OUTSIDE = 3,
     MARKUP = [
             '<div class="', PREFIX, '-tl" handle="tl"></div>',
             '<div class="', PREFIX, '-tm" handle="tm"></div>',
@@ -39,15 +37,8 @@ function isInbound(element, ex, ey) {
             ib = Math.max(t, b - handleSize);
             
             // check if cursor is outside the inner dimensions
-            if (!(il < ex && ir > ex && it < ey && ib > ey)) {
-                return POSITION_INSIDE_HANDLER;
-            }
-            
-            return POSITION_INSIDE;
+            return !(il < ex && ir > ex && it < ey && ib > ey);
         
-        }
-        else {
-            return POSITION_OUTSIDE;
         }
         
     }
@@ -63,7 +54,8 @@ function Resizer() {
         win = window,
         doc = win.document,
         div = doc.createElement('div'),
-        originalMouseMove = me.onMouseMove;
+        originalMouseMove = me.onMouseMove,
+        originalMouseOut = me.onMouseOut;
     
     div.className = PREFIX + '-container';
     div.innerHTML = MARKUP.join('');
@@ -79,6 +71,9 @@ function Resizer() {
     me.onMouseMove = function () {
         originalMouseMove.apply(me, arguments);
     };
+    me.onMouseOut = function () {
+        originalMouseOut.apply(me, arguments);
+    };
 }
 
 Resizer.prototype = {
@@ -90,33 +85,42 @@ Resizer.prototype = {
     constructor: Resizer,
     
     onMouseMove: function (evt) {
-        var element = this.attached,
-            pageOffset = DIMENSION.eventPageOffset(evt),
-            status = isInbound(element, pageOffset[0], pageOffset[1]);
-
-        switch (status) {
-        case POSITION_INSIDE_HANDLER:
-            this.onShowHandles(element);
-            console.log('inside!');
-            break;
-        
-        default:
-            this.onHideHandles(element);
-            console.log('outside!');
+        var me = this,
+            element = me.attached,
+            pageOffset = DIMENSION.eventPageOffset(evt);
+            
+        if (element) {
+            if (me.isInside(element, pageOffset[0], pageOffset[1])) {
+                me.onShowHandles(element);
+            }
+            else {
+                me.onHideHandles(element);
+            }
         }
         
     },
     
+    onMouseOut: function (evt) {
+        var me = this,
+            element = me.attached,
+            pageOffset = DIMENSION.eventPageOffset(evt);
+            
+        if (element) {
+            if (me.isInside(element, pageOffset[0], pageOffset[1])) {
+                me.onShowHandles(element);
+            }
+            else {
+                me.onHideHandles(element);
+            }
+        }
+    },
+    
     onShowHandles: function (element) {
         var container = this.dom,
-            str = container.className,
             dim = DIMENSION,
-            showClass = this.showClass,
             box = dim.box(element);
         
-        if (str.indexOf(showClass) === -1) {
-            container.className = str + ' ' + showClass;
-        }
+        CSS.add(container, this.showClass);
         
         dim.setBox(container, box);
         
@@ -124,20 +128,40 @@ Resizer.prototype = {
     },
     
     onHideHandles: function (element) {
-        var container = this.dom,
-            str = container.className,
-            showClass = this.showClass,
-            index = str.indexOf(showClass),
-            len = str.length;
-        var trail;
+        var container = this.dom;
+        
+        CSS.remove(container, this.showClass);
+        
+    },
+    
+    isInside: function (element, ex, ey) {
+        var dimension = DIMENSION.box(element),
+            handleSize = HANDLE_SIZE;
             
-        if (index !== -1) {
-            trail = index + showClass.length;
-            container.className = str.substring(0, index -1) + (
-                                    len > trail ?
-                                        str.substring(trail, len) : ''
-                                );
+        var t, b, l, r, it, ib, il, ir;
+        
+        if (dimension) {
+            l = dimension[0];
+            t = dimension[1];
+            r = dimension[2];
+            b = dimension[3];
+    
+            // check if cursor is inside the outer dimensions
+            if (l < ex && r > ex && t < ey && b > ey) {
+            
+                il = Math.min(l + handleSize, r);
+                ir = Math.max(l, r - handleSize);
+                it = Math.min(t + handleSize, b);
+                ib = Math.max(t, b - handleSize);
+                
+                // check if cursor is outside the inner dimensions
+                return !(il < ex && ir > ex && it < ey && ib > ey);
+            
+            }
+            
         }
+
+        return false;
     },
     
     attach: function (element) {
@@ -151,6 +175,7 @@ Resizer.prototype = {
             
             this.attached = element;
             EVENT.on(element.ownerDocument.body, 'mousemove', this.onMouseMove);
+            EVENT.on(element.ownerDocument.body, 'mouseout', this.onMouseOut);
             
         }
         return this;
@@ -161,6 +186,7 @@ Resizer.prototype = {
         var last = this.attached;
         if (last) {
             EVENT.un(last.ownerDocument.body, 'mousemove', this.onMouseMove);
+            EVENT.on(last.ownerDocument.body, 'mouseout', this.onMouseOut);
             delete this.attached;
         }
     },

@@ -79,19 +79,23 @@ function stopObserving() {
 
 function onMouseOver(evt) {
     var resizer = RESIZER,
+        dimension = DIMENSION,
         target = resizer.attached;
-    var element;
+    var element, offset, x, y;
     
     if (!target) {
-        element = DIMENSION.eventTarget(evt);
+        element = dimension.eventTarget(evt);
+        offset = dimension.eventPageOffset(evt);
+        x = offset[0];
+        y = offset[1];
         
         for (; element; element = element.parentNode) {
-            
-            if (1 === element.__dom_resizer) {
+            console.log(x, y,'? ', 1 === element.__dom_resizer && resizer.isInside(element, x, y));
+            if (1 === element.__dom_resizer &&
+                resizer.isInside(element, x, y)) {
                 resizer.attach(element);
                 break;
             }
-            
         }
     }
     
