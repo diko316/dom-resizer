@@ -137,16 +137,19 @@ Resizer.prototype = {
     onMouseUp: function () {
         var me = this,
             dim = DIMENSION;
-        var size;
+        var box;
         
         if (me.status === STATE_RESIZE) {
-            size = dim.size(me.dom);
+            box = dim.box(me.dom);
             CSS.remove(me.mask, me.showClass);
             delete me.startOffset;
             me.status = STATE_ATTACHED;
+
             EVENT.dispatch(me.attached, 'domresize', {
-                'resizeWidth': size[0],
-                'resizeHeight': size[1]
+                'resizeLeft': box[0],
+                'resizeTop': box[1],
+                'resizeWidth': box[4],
+                'resizeHeight': box[5]
             });
         }
     },
