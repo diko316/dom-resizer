@@ -197,55 +197,6 @@ function isObservable(dom) {
 }
 
 
-function dispatchEvent(dom, type, defaults) {
-    var O = Object.prototype,
-        trigger = false,
-        event = null;
-    var doc, name, hasOwn;
-    
-    if (O.toString.call(defaults) !== '[object Object]') {
-        defaults = {};
-    }
-    
-    
-    doc = dom.ownerDocument;
-    
-    if ('createEventObject' in doc) {
-        event = doc.createEventObject();
-        trigger = 'fireEvent';
-        hasOwn = O.hasOwnProperty;
-        for (name in defaults) {
-            if (hasOwn.call(defaults, name)) {
-                event[name] = defaults[name];
-            }
-        }
-        
-        dom.fireEvent('on' + type, event);
-        
-    }
-    else if ('createEvent' in doc) {
-        event = doc.createEvent("Event");
-        event.initEvent(type,
-                defaults.bubbles !== false,
-                defaults.cancelable !== false);
-        
-        hasOwn = O.hasOwnProperty;
-        for (name in defaults) {
-            if (hasOwn.call(defaults, name)) {
-                event[name] = defaults[name];
-            }
-        }
-        
-        dom.dispatchEvent(event);
-    }
-    
-    return event;
-}
-
-
-
-
-
 function EventManager() {
 }
 
@@ -307,19 +258,6 @@ EventManager.prototype = {
         for (; l--;) {
             remove(nodes[l]);
         }
-        return this;
-    },
-    
-    dispatch: function (dom, event, details) {
-        
-        initialize();
-        
-        if (!event || typeof event !== 'string') {
-            throw new Error('Invalid [event] type parameter.');
-        }
-        
-        dispatchEvent(dom, event, details);
-        
         return this;
     }
 };

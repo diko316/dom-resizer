@@ -6,5 +6,5 @@ module.exports = require("./lib/manager.js");
 
 
 // test
-require("./test.js");
+//require("./test.js");
 
