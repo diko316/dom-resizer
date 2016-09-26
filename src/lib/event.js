@@ -210,20 +210,7 @@ function dispatchEvent(dom, type, defaults) {
     
     doc = dom.ownerDocument;
     
-    if ('createEventObject' in doc) {
-        event = doc.createEventObject();
-        trigger = 'fireEvent';
-        hasOwn = O.hasOwnProperty;
-        for (name in defaults) {
-            if (hasOwn.call(defaults, name)) {
-                event[name] = defaults[name];
-            }
-        }
-        
-        dom.fireEvent('on' + type, event);
-        
-    }
-    else if ('createEvent' in doc) {
+    if ('createEvent' in doc) {
         event = doc.createEvent("Event");
         event.initEvent(type,
                 defaults.bubbles !== false,
@@ -238,6 +225,20 @@ function dispatchEvent(dom, type, defaults) {
         
         dom.dispatchEvent(event);
     }
+    else if ('createEventObject' in doc) {
+        event = doc.createEventObject();
+        trigger = 'fireEvent';
+        hasOwn = O.hasOwnProperty;
+        for (name in defaults) {
+            if (hasOwn.call(defaults, name)) {
+                event[name] = defaults[name];
+            }
+        }
+        
+        dom.fireEvent('on' + type, event);
+        
+    }
+    
     
     return event;
 }
