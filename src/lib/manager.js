@@ -54,7 +54,8 @@ function startObserving() {
             RESIZER = new COMPONENT();
         }
         OBSERVING = true;
-        EVENT.on(body, 'mouseover', onMouseOver);
+        EVENT.on(body, 'mouseover', onFindAttachment);
+        EVENT.on(body, 'mousemove', onFindAttachment);
     }
     body = null;
     //event.on(element, 'mouseover', onMouseOver);
@@ -69,7 +70,8 @@ function stopObserving() {
         if (component) {
             component.detach();
         }
-        EVENT.un(body, 'mouseover', onMouseOver);
+        EVENT.un(body, 'mouseover', onFindAttachment);
+        EVENT.un(body, 'mousemove', onFindAttachment);
     }
     
     body = null;
@@ -77,13 +79,12 @@ function stopObserving() {
 
 
 
-function onMouseOver(evt) {
+function onFindAttachment(evt) {
     var resizer = RESIZER,
-        dimension = DIMENSION,
-        target = resizer.attached;
+        dimension = DIMENSION;
     var dom, offset, x, y;
     
-    if (!target) {
+    if (!resizer.isBusy()) {
         dom = dimension.eventTarget(evt);
         offset = dimension.eventPageOffset(evt);
         x = offset[0];
@@ -99,8 +100,6 @@ function onMouseOver(evt) {
     }
     
 }
-
-
 
 
 

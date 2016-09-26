@@ -8,7 +8,8 @@ var SELECTION = require("./selection.js"),
     STATE_IDLE = 0,
     STATE_ATTACHED = 1,
     STATE_INSIDE = 2,
-    STATE_RESIZE = 3;
+    STATE_RESIZE = 3,
+    STATE_DESTROYED = 4;
 
 function Resizer() {
     var me = this,
@@ -26,6 +27,7 @@ function Resizer() {
     
     me.dom = container;
     me.mask = mask;
+    me.status = STATE_IDLE;
     
     doc.body.appendChild(mask);
     mask.appendChild(container);
@@ -49,11 +51,12 @@ function Resizer() {
 }
 
 Resizer.prototype = {
-    
+    dom: void(0),
+    mask: void(0),
     attached: void(0),
     handlerAttribute: PREFIX + '-handler',
     handlerSize: 10,
-    status: STATE_IDLE,
+    status: STATE_DESTROYED,
     selectionDisabled: false,
     showClass: PREFIX + '-show',
     
@@ -289,6 +292,16 @@ Resizer.prototype = {
         return info;
     },
     
+    isBusy: function () {
+        switch (this.status) {
+        case STATE_RESIZE:
+        /* falls through */
+        case STATE_DESTROYED:
+            return true;
+        }
+        return false;
+    },
+    
     attach: function (element, event) {
         var me = this,
             eventMgr = EVENT,
@@ -302,6 +315,7 @@ Resizer.prototype = {
                 break;
             }
             me.detach();
+            console.log('attached! ');
             
         /* falls through */
         case STATE_IDLE:
@@ -335,6 +349,16 @@ Resizer.prototype = {
     },
     
     destroy: function () {
+        var me = this,
+            mask = this.mask;
+            
+        me.detach();
+        mask.parentNode.removeChild(mask);
+        mask = null;
+        delete me.status;
+        delete me.dom;
+        delete me.mask;
+        return me;
         
     }
 };
