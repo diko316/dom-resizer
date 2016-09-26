@@ -153,16 +153,31 @@ Resizer.prototype = {
     
     applyCursor: function (info) {
         var me = this,
-            body = me.dom.ownerDocument.body,
-            attr = me.handlerAttribute;
+            dim = DIMENSION,
+            attr = me.handlerAttribute,
+            dom = me.dom,
+            subject = me.attached;
+        var body;
         
-        if (info.inside) {
-            body.setAttribute(attr, info.handler);
-        }
-        else {
-            body.removeAttribute(attr);
+        if (dom) {
+            body = me.dom.ownerDocument.body;
+        
+            if (info.inside) {
+                body.setAttribute(attr, info.handler);
+                // sync size
+                dim.setBox(me.dom,
+                        dim.box(subject)
+                    );
+            }
+            else {
+                body.removeAttribute(attr);
+            }
+            
+            
+            
         }
         body = null;
+        dom = null;
     },
     
     onSyncSize: function (event) {
@@ -322,7 +337,6 @@ Resizer.prototype = {
                 break;
             }
             me.detach();
-            console.log('attached! ');
             
         /* falls through */
         case STATE_IDLE:

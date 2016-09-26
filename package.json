@@ -1,6 +1,6 @@
 {
   "name": "dom-resizer",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "A Standalone DOM HTMLElement resize handler",
   "main": "dist/index.js",
   "scripts": {

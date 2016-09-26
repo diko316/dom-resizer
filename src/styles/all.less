@@ -1,67 +1,91 @@
 
 @proxy-color: rgba(60, 130, 255, .1);
 
+.apply-opacity(@opacity) {
+    /* IE 8 */
+    -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=@{opacity})";
+  
+    /* IE 5-7 */
+    filter: alpha(opacity=@opacity);
+  
+    /* Netscape */
+    -moz-opacity: @opacity / 100;
+  
+    /* Safari 1.x */
+    -khtml-opacity: @opacity / 100;
+  
+    /* Good browsers */
+    opacity: @opacity / 100;
+}
 
 body {
+    .dom-resizer-mask {
+        display: none;
+        position: fixed;
+        height: 100%;
+        width: 100%;
+        z-index: 10000;
+        
+        .dom-resizer-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            border: 1px dashed darken(@proxy-color, 50);
+            background-color: @proxy-color;
+        }
+    }
+
+    &[dom-resizer-handler] {
+        .dom-resizer-mask {
+            display: block;
+            .apply-opacity(0);
+            
+            &.dom-resizer-show {
+                .apply-opacity(100);
+            }
+        }
+    }
+    
     
     /* center top */
     &[dom-resizer-handler=ct] {
-        cursor: n-resize;
+        cursor: n-resize !important;
     }
     
     /* center bottom */
     &[dom-resizer-handler=cb] {
-        cursor: s-resize;
+        cursor: s-resize !important;
     }
     
     /* left middle */
     &[dom-resizer-handler=lm] {
-        cursor: w-resize;
+        cursor: w-resize !important;
     }
     
     /* right middle */
     &[dom-resizer-handler=rm] * {
-        cursor: e-resize;
+        cursor: e-resize !important;
     }
     
     /* left top */
     &[dom-resizer-handler=lt] {
-        cursor: nw-resize;
+        cursor: nw-resize !important;
     }
     
     /* left bottom */
     &[dom-resizer-handler=lb] {
-        cursor: sw-resize;
+        cursor: sw-resize !important;
     }
     
     /* right top */
     &[dom-resizer-handler=rt] {
-        cursor: ne-resize;
+        cursor: ne-resize !important;
     }
     
     /* right bottom */
     &[dom-resizer-handler=rb] {
-        cursor: se-resize;
+        cursor: se-resize !important;
     }
 
 }
 
-.dom-resizer-mask {
-    display: none;
-    position: fixed;
-    height: 100%;
-    width: 100%;
-    z-index: 10000;
-    
-    &.dom-resizer-show {
-        display: block;
-    }
-    
-    .dom-resizer-container {
-        position: absolute;
-        top: 0;
-        left: 0;
-        border: 1px dashed darken(@proxy-color, 50);
-        background-color: @proxy-color;
-    }
-}
